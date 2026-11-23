@@ -18,6 +18,7 @@ import { workRouter } from './routes/work.js';
 import { aiRouter } from './routes/ai.js';
 import { devRouter, publicApiRouter } from './routes/dev.js';
 import { publicRouter } from './routes/public.js';
+import { telemetryRouter } from './routes/telemetry.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -81,6 +82,7 @@ app.use('/api', originGuard);
 /* ------------------------------- routes ------------------------------- */
 app.use('/api/auth', authRouter);
 app.use('/api/public', publicRouter);
+app.use('/api', telemetryRouter);
 app.use('/api/portal', portalRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/work', workRouter);

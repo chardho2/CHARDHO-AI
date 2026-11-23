@@ -118,11 +118,31 @@ tests/api.test.js 29 security and behaviour tests
 
 ### 3D and performance
 
+The 3D scene is a dynamic import and its `modulepreload` hint is stripped at build
+time, so three.js (1.1 MB raw / 315 kB gzip) is fetched only when the hero scene
+actually mounts. The initial payload is ~370 kB raw / ~110 kB gzip. Phones,
+reduced-motion users and devices with low memory/cores get the CSS-only fallback.
+
 - The hero is a procedural wireframe AI globe with a pulsing neural mesh, fresnel atmosphere, orbiting rings, floating solids and star field.
 - **Lazy loaded**: Three.js (~315 kB gzipped) only downloads when the scene is actually rendered.
 - **2D fallback** for phones, devices with ≤4 GB RAM or ≤4 cores, `prefers-reduced-data`, missing WebGL, or a lost context.
 - `prefers-reduced-motion` disables camera parallax and animation loops rather than merely slowing them.
 - Pause off-screen animation, capped DPR (≤1.7), instanced point geometry.
+
+### When something breaks
+
+A render error used to blank the page and leave no trace. Now:
+
+- `AppErrorBoundary` wraps the whole app and shows a recovery card (reload / home)
+  instead of a white screen.
+- `window.onerror` and `unhandledrejection` are captured too, so async failures
+  that React boundaries cannot see are not lost.
+- Reports go to `POST /api/client-errors`, which is rate limited per IP, strips
+  control characters, truncates every field, and writes to `error_logs`. They then
+  appear in the Developer portal's error monitor next to server-side faults.
+
+Reporting is best-effort and can never throw into the app. Each distinct error is
+sent once per page load.
 
 ### Data model
 

@@ -419,3 +419,59 @@ describe('database integrity', () => {
     }
   });
 });
+
+describe('client error reporting', () => {
+  const anon = () => client();
+
+  it('accepts a browser crash and records it for the developer portal', async () => {
+    const c = anon();
+    const res = await c.fetch('/api/client-errors', {
+      method: 'POST',
+      body: {
+        kind: 'render',
+        message: 'Cannot read properties of undefined (reading "name")',
+        stack: 'TypeError: ...\n    at Dashboard (pages.jsx:42)',
+        componentStack: '\n    in Dashboard',
+        route: '/app',
+        userAgent: 'node-test',
+      },
+    });
+    assert.equal(res.status, 204);
+
+    const row = dbModule.db
+      .prepare("SELECT level, source, message, meta FROM error_logs WHERE source = 'client:render' ORDER BY id DESC")
+      .get();
+    assert.ok(row, 'the error was persisted');
+    assert.equal(row.level, 'error');
+    assert.match(row.message, /Cannot read properties/);
+    assert.equal(JSON.parse(row.meta).route, '/app');
+  });
+
+  it('rejects a payload without a message', async () => {
+    const res = await anon().fetch('/api/client-errors', { method: 'POST', body: { kind: 'render' } });
+    assert.equal(res.status, 400);
+  });
+
+  it('truncates oversized fields instead of storing unbounded text', async () => {
+    const c = anon();
+    await c.fetch('/api/client-errors', {
+      method: 'POST',
+      body: { kind: 'promise', message: 'x'.repeat(4000), stack: 'y'.repeat(9000) },
+    });
+    const row = dbModule.db
+      .prepare("SELECT message, meta FROM error_logs WHERE source = 'client:promise' ORDER BY id DESC")
+      .get();
+    assert.equal(row.message.length, 500);
+    assert.ok(JSON.parse(row.meta).stack.length <= 2000);
+  });
+
+  it('rate limits a flood of reports', async () => {
+    const c = anon();
+    let sawLimit = false;
+    for (let i = 0; i < 40 && !sawLimit; i += 1) {
+      const res = await c.fetch('/api/client-errors', { method: 'POST', body: { kind: 'flood', message: `flood ${i}` } });
+      if (res.status === 429) sawLimit = true;
+    }
+    assert.ok(sawLimit, 'repeated reports are throttled per IP');
+  });
+});
