@@ -13,6 +13,22 @@ const SESSION_TTL_HOURS = Number(process.env.CHARDHO_SESSION_TTL_HOURS || 12);
 const PRIVILEGED_ROLES = new Set(['founder', 'super_admin', 'manager', 'developer', 'support']);
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+/**
+ * Cookie SameSite policy.
+ * "Lax" (default) is the right production setting. A hosted preview panel that
+ * embeds the app inside a cross-site iframe cannot send Lax cookies, so the
+ * preview process may set CHARDHO_COOKIE_SAMESITE=None. CSRF stays mitigated by
+ * the origin guard on mutating requests. "None" requires Secure, so it is
+ * force-enabled whenever that value is used.
+ */
+const SAME_SITE = (() => {
+  const value = String(process.env.CHARDHO_COOKIE_SAMESITE || 'Lax').toLowerCase();
+  if (value === 'none') return 'None';
+  if (value === 'strict') return 'Strict';
+  return 'Lax';
+})();
+const COOKIE_SECURE = IS_PROD || SAME_SITE === 'None';
+
 const sha256 = (v) => crypto.createHash('sha256').update(String(v)).digest('hex');
 
 export function require2fa(roleKey) {
@@ -37,14 +53,14 @@ export function setSessionCookie(res, token) {
   const maxAge = SESSION_TTL_HOURS * 3600;
   res.append(
     'Set-Cookie',
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge}${
-      IS_PROD ? '; Secure' : ''
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=${SAME_SITE}; Max-Age=${maxAge}${
+      COOKIE_SECURE ? '; Secure' : ''
     }`,
   );
 }
 
 export function clearSessionCookie(res) {
-  res.append('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0${IS_PROD ? '; Secure' : ''}`);
+  res.append('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=${SAME_SITE}; Max-Age=0${COOKIE_SECURE ? '; Secure' : ''}`);
 }
 
 /* ------------------------------- sessions ------------------------------ */

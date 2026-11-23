@@ -27,6 +27,16 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 // machine; in production it must accept traffic from the platform's proxy.
 const HOST = process.env.CHARDHO_HOST || (IS_PROD ? '0.0.0.0' : '127.0.0.1');
 
+/**
+ * Framing policy.
+ * Defaults to same-origin only. Hosted preview panels render the app inside an
+ * iframe from a different origin, so they must be allow-listed explicitly via
+ * CHARDHO_FRAME_ANCESTORS. When that is set we drop X-Frame-Options (which
+ * cannot express a list) and rely on the CSP frame-ancestors directive.
+ */
+const FRAME_ANCESTORS = (process.env.CHARDHO_FRAME_ANCESTORS || "'self'").trim();
+const EMBEDDABLE = FRAME_ANCESTORS !== "'self'";
+
 // First run: create the schema and one randomly-passworded account per role.
 // The credentials file is written next to the database, not into the project root.
 if (db.prepare('SELECT COUNT(*) AS c FROM users').get().c === 0) {
@@ -40,7 +50,7 @@ app.set('trust proxy', 1);
 /* ----------------------------- hardening ------------------------------ */
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  if (!EMBEDDABLE) res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
@@ -56,7 +66,7 @@ app.use((req, res, next) => {
         "font-src 'self' data:",
         "connect-src 'self'",
         "worker-src 'self' blob:",
-        "frame-ancestors 'self'",
+        `frame-ancestors ${FRAME_ANCESTORS}`,
       ].join('; '),
     );
   }

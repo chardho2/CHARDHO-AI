@@ -24,6 +24,26 @@ npm test             # 29 API + authorisation tests against a throwaway database
 
 Requirements: **Node 22.5+** (uses the built-in `node:sqlite`). No external database, no paid services, no API keys required.
 
+### Running inside a hosted preview
+
+A preview panel usually embeds the app in a cross-site iframe, which breaks two
+secure defaults. Both are opt-in, and neither weakens a normal deployment:
+
+```bash
+PORT=5173 NODE_ENV=production \
+  CHARDHO_FRAME_ANCESTORS="'self' https://*.e2b.app" \
+  CHARDHO_COOKIE_SAMESITE=None \
+  node server/index.js
+```
+
+- `CHARDHO_FRAME_ANCESTORS` allow-lists embedding origins. When set, `X-Frame-Options`
+  is dropped (it cannot express a list) and the CSP `frame-ancestors` directive governs instead.
+- `CHARDHO_COOKIE_SAMESITE=None` lets the session cookie travel inside a cross-site
+  iframe. It force-enables `Secure`, and CSRF stays covered by the origin guard.
+
+Both default to the strict setting (`'self'` and `Lax`), so leave them unset in production
+and open the preview in its own tab if you prefer.
+
 ### First sign-in
 
 1. Open `/login` and use an account from `data/credentials/seed-credentials.txt`.
