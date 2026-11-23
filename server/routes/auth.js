@@ -88,7 +88,9 @@ authRouter.post(
 /* ------------------------------ 2FA verify ----------------------------- */
 authRouter.post(
   '/2fa/verify',
-  rateLimit({ key: (req) => `2fa:${req.ip}`, limit: 12, windowMs: 5 * 60 * 1000 }),
+  // Keyed per account, not per IP: several people behind one NAT must not be able
+  // to lock each other out of their own second factor.
+  rateLimit({ key: (req) => `2fa:${req.user?.id || req.ip}`, limit: 15, windowMs: 10 * 60 * 1000 }),
   asyncRoute(async (req, res) => {
     if (!req.user) throw unauthorized('Start signing in again');
     requireFields(req.body, ['code']);
