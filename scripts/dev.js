@@ -25,5 +25,5 @@ function shutdown(code) {
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
-run('api', process.execPath, ['--env-file-if-exists=.env', 'server/index.js']);
+run('api', process.execPath, ['--disable-warning=ExperimentalWarning', '--env-file-if-exists=.env', 'server/index.js']);
 run('web', process.execPath, ['node_modules/vite/bin/vite.js', '--host', '0.0.0.0']);

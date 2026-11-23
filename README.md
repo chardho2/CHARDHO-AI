@@ -196,6 +196,23 @@ These are stated plainly so nobody discovers them in production.
 | `npm test` | API, RBAC and security tests |
 | `npm run seed` | Seed a database manually |
 | `node scripts/e2e-check.mjs` | Sign in to all seven portals through the proxy and print a status table |
+| `node scripts/endpoint-sweep.mjs` | Hit all 48 data endpoints per role and report any non-2xx |
+
+Both verification scripts honour `CHARDHO_BASE_URL`, `CHARDHO_CREDENTIALS` and
+`CHARDHO_DB_PATH`, so they can be run against a throwaway instance instead of the
+database you are demoing — a dry run that enrols 2FA stays out of your live data:
+
+```bash
+rm -rf /tmp/verify && mkdir -p /tmp/verify
+PORT=8788 CHARDHO_DATA_DIR=/tmp/verify NODE_ENV=production npm start &
+CHARDHO_BASE_URL=http://localhost:8788 \
+  CHARDHO_CREDENTIALS=/tmp/verify/credentials/seed-credentials.txt \
+  CHARDHO_DB_PATH=/tmp/verify/chardho.db node scripts/e2e-check.mjs
+```
+
+Node prints a `node:sqlite` ExperimentalWarning on boot; every npm script passes
+`--disable-warning=ExperimentalWarning` so the startup log stays clean. The flag
+suppresses that one warning only, not all warnings.
 
 ---
 

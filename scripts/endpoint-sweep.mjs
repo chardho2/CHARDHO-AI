@@ -2,9 +2,9 @@
 import fs from 'node:fs';
 import { totpCode } from '../server/auth.js';
 
-const rows = fs.readFileSync('data/credentials/seed-credentials.txt', 'utf8')
+const rows = fs.readFileSync(process.env.CHARDHO_CREDENTIALS || 'data/credentials/seed-credentials.txt', 'utf8')
   .split('\n').filter((l) => /^\S+\s+\/[\w-]+/.test(l)).map((l) => l.trim().split(/\s+/));
-const base = 'http://localhost:5173';
+const base = process.env.CHARDHO_BASE_URL || 'http://localhost:5173';
 
 const CHECKS = {
   founder: ['/api/admin/users', '/api/admin/roles', '/api/admin/security', '/api/admin/backups', '/api/admin/moderation',

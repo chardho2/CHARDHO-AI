@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import { totpCode } from '../server/auth.js';
 
-const text = fs.readFileSync('data/credentials/seed-credentials.txt', 'utf8');
+const text = fs.readFileSync(process.env.CHARDHO_CREDENTIALS || 'data/credentials/seed-credentials.txt', 'utf8');
 const rows = text.split('\n')
   .filter((l) => /^\S+\s+\/[\w-]+/.test(l))
   .map((l) => l.trim().split(/\s+/));
 
-const base = 'http://localhost:5173';
+const base = process.env.CHARDHO_BASE_URL || 'http://localhost:5173';
 const out = [];
 
 for (const [portal, home, email, password] of rows) {
